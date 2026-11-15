@@ -10,7 +10,7 @@
 #define MAP_HEIGHT 16
 #define TILE_SIZE 32
 #define PI 3.14159265358979323846
-#define RAD(x) (x*(PI/180))
+#define RAD(x) ((x)*(PI/180.0))
 
 SDL_Window *window;
 SDL_Renderer *renderer;
@@ -41,7 +41,7 @@ typedef struct
 {
     uint8_t height;
     uint8_t fov_deg;
-    float angle;
+    float angle_deg;
     float x;
     float y;
 } 
@@ -51,12 +51,12 @@ Player player =
 {
     .height = 32,
     .fov_deg = 60,
-    .angle = 60,
+    .angle_deg = 60,
     (MAP_WIDTH/2.0)*TILE_SIZE, (MAP_HEIGHT/2.0)*TILE_SIZE
 };
 
 float distToProjPlane;
-float angleBetweenRays;
+float angle_between_rays;
 
 int windowWidth = 1920;
 int windowHeight = 1080;
@@ -94,7 +94,7 @@ int main(void)
 
     // TODO allow for window scaling
     distToProjPlane = (windowWidth/2.0)/tan(RAD(player.fov_deg/2.0));
-    angleBetweenRays = (float)player.fov_deg / windowWidth;
+    angle_between_rays = (float)player.fov_deg / windowWidth;
 
     while (!stop)
     {
@@ -121,12 +121,12 @@ void draw(void)
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xFF);
     SDL_RenderClear(renderer);
 
-    float start = player.angle - player.fov_deg/2.0;
+    float start = player.angle_deg - player.fov_deg/2.0;
     float intersection_x;
     float intersection_y;
     for (int c = 0; c < s_area.w; c++)
     {
-        float ray_angle_deg = start + c*angleBetweenRays;
+        float ray_angle_deg = start + c*angle_between_rays;
 
         // Undefined tan
         if(ray_angle_deg == 90.0f || ray_angle_deg == 270.0f)
@@ -219,6 +219,11 @@ void draw(void)
             distance = temp < distance ? temp : distance;
         }
 
+        // Correct fisheye distortion
+        float d = RAD(ray_angle_deg - player.angle_deg);
+        float cosbeta = cos(d);
+        distance = distance * cosbeta;
+
         // Draw
         float projDrawHeight = (TILE_SIZE / distance) * distToProjPlane;
         float middle = s_area.h/2.0;
@@ -250,8 +255,8 @@ void gameLoop(void)
         }
     }
 
-    player.angle = player.angle + 0.1;
-    player.angle = player.angle > 360 ? player.angle - 360 : player.angle;
+    player.angle_deg = player.angle_deg + 0.01;
+    player.angle_deg = player.angle_deg > 360 ? player.angle_deg - 360 : player.angle_deg;
 
     // Render
     draw();
