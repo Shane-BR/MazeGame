@@ -5,6 +5,7 @@
 #include <SDL3/SDL_render.h>
 #include <float.h>
 #include <math.h>
+#include "stb_image.h"
 
 #define MAP_WIDTH 16
 #define MAP_HEIGHT 16
@@ -55,11 +56,14 @@ Player player =
     (MAP_WIDTH/2.0)*TILE_SIZE, (MAP_HEIGHT/2.0)*TILE_SIZE
 };
 
+// TODO MOVE!!!
 float distToProjPlane;
 float angle_between_rays;
 
 int windowWidth = 1920;
 int windowHeight = 1080;
+
+SDL_Texture *tex;
 
 void gameLoop(void);
 void draw(void);

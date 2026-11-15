@@ -19,5 +19,6 @@ PRIVATE
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/lib/stb/include/)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE m SDL3::SDL3)
