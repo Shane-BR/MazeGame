@@ -1,12 +1,12 @@
-#include <SDL3/SDL_video.h>
 #include <SDL3/SDL_events.h>
-#include <SDL3/SDL_main.h>
+#include <SDL3/SDL_init.h>
 #include <SDL3/SDL_log.h>
-#include <SDL3/SDL_render.h>
 #include <SDL3/SDL_timer.h>
 #include <float.h>
 #include <math.h>
+#include "render.h"
 #include "stb_image.h"
+#include "window.h"
 
 #define MAP_WIDTH 16
 #define MAP_HEIGHT 16
@@ -14,8 +14,8 @@
 #define PI 3.14159265358979323846
 #define RAD(x) ((x)*(PI/180.0))
 
-SDL_Window *window;
-SDL_Surface *window_surface;
+Window *window;
+Renderer *renderer;
 bool stop;
 
 char map[MAP_WIDTH][MAP_HEIGHT] = 
@@ -60,13 +60,6 @@ Player player =
 float distToProjPlane;
 float angle_between_rays;
 
-int windowWidth = 1920;
-int windowHeight = 1080;
-
-SDL_Surface *raycast_surface;
-uint32_t *raycast_pixels;
-uint32_t color;
-
 void gameLoop(void);
 void draw(void);
 bool inMap(float x, float y);
@@ -80,30 +73,22 @@ int main(void)
         return 1;
     }
 
-    window = SDL_CreateWindow("Maze Game", windowWidth, windowHeight, 0);
-    if (!window)
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
-                    "Window creation failed %s\n", SDL_GetError());
-        return 1;
-    }
-
-    window_surface = SDL_GetWindowSurface(window);
+    window = createWindow(1920, 1080, "Maze Game");
+    renderer = createRenderer(getWindowWidth(window), getWindowHeight(window), window);
 
     stop = false;
 
     // TODO allow for window scaling
-    distToProjPlane = (windowWidth/2.0)/tan(RAD(player.fov_deg/2.0));
-    angle_between_rays = (float)player.fov_deg / windowWidth;
-    raycast_surface = SDL_CreateSurface(windowWidth, windowHeight, window_surface->format);
-    raycast_pixels = raycast_surface->pixels;
-    color = SDL_MapRGBA(SDL_GetPixelFormatDetails(window_surface->format), 0, 0x99, 0x99, 0x99, 0xFF);
+    distToProjPlane = (getWindowWidth(window)/2.0)/tan(RAD(player.fov_deg/2.0));
+    angle_between_rays = (float)player.fov_deg / getWindowWidth(window);
 
     while (!stop)
     {
         gameLoop();
     }
 
+    destroyRenderer(renderer);
+    destroyWindow(window);
     SDL_Quit();
     return 0;
 }
@@ -119,11 +104,14 @@ bool inMap(float x, float y)
 void draw(void)
 {
 
-    SDL_ClearSurface(raycast_surface, 0, 0, 0, 0xFF);
+    clearRenderer(renderer);
 
     float start = player.angle_deg - player.fov_deg/2.0;
     float intersection_x;
     float intersection_y;
+    int windowWidth = getWindowWidth(window);
+    int windowHeight = getWindowHeight(window);
+
     for (int c = 0; c < windowWidth; c++)
     {
         float ray_angle_deg = start + c*angle_between_rays;
@@ -226,25 +214,19 @@ void draw(void)
         float projDrawHeight = (TILE_SIZE / distance) * distToProjPlane;
         float middle = windowHeight/2.0;
 
-        float bottom = middle - (projDrawHeight/2.0);
-        float top = middle + (projDrawHeight/2.0);
+        float y1 = middle - (projDrawHeight/2.0);
+        float y2 = middle + (projDrawHeight/2.0);
 
-        bottom = bottom < 0 ? 0 : bottom;
-        bottom = bottom > windowHeight ? windowHeight : bottom;
+        y1 = y1 < 0 ? 0 : y1;
+        y1 = y1 > windowHeight ? windowHeight : y1;
 
-        top = top < 0 ? 0 : top;
-        top = top > windowHeight ? windowHeight : top;
+        y2 = y2 < 0 ? 0 : y2;
+        y2 = y2 > windowHeight ? windowHeight : y2;
         
-        for (int y = bottom; y < top; y++)
-        {
-            raycast_pixels[c + (y * raycast_surface->w)] = color;
-        }
-                
+        drawVertLine(renderer, MG_COLOR_CORAL, y1, y2, c);         
     }
 
-    SDL_BlitSurface(raycast_surface, 0, window_surface, 0);
-    SDL_UpdateWindowSurface(window);
-
+    updateRenderer(renderer, window);
 }
 
 void gameLoop(void)

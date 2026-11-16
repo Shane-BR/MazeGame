@@ -16,9 +16,15 @@ add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
 PRIVATE
     src/main.c
+    src/render.c
+    src/window.c
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Debug>:-fsanitize=address;-fno-omit-frame-pointer>")
+target_link_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Debug>:-fsanitize=address>")
+
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/lib/stb/include/)
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src/)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE m SDL3::SDL3)
