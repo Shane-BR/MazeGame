@@ -3,6 +3,7 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_render.h>
+#include <SDL3/SDL_timer.h>
 #include <float.h>
 #include <math.h>
 #include "stb_image.h"
@@ -14,25 +15,24 @@
 #define RAD(x) ((x)*(PI/180.0))
 
 SDL_Window *window;
-SDL_Renderer *renderer;
-SDL_Surface *surface;
+SDL_Surface *window_surface;
 bool stop;
 
 char map[MAP_WIDTH][MAP_HEIGHT] = 
 {
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1 },
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1 },
+    { 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+    { 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
     { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
     { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
@@ -63,7 +63,9 @@ float angle_between_rays;
 int windowWidth = 1920;
 int windowHeight = 1080;
 
-SDL_Texture *tex;
+SDL_Surface *raycast_surface;
+uint32_t *raycast_pixels;
+uint32_t color;
 
 void gameLoop(void);
 void draw(void);
@@ -86,19 +88,16 @@ int main(void)
         return 1;
     }
 
-    surface = SDL_GetWindowSurface(window);
-    renderer = SDL_CreateSoftwareRenderer(surface);
-    if (!renderer) 
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Render creation for surface fail : %s\n", SDL_GetError());
-        return 1;
-    }
+    window_surface = SDL_GetWindowSurface(window);
 
     stop = false;
 
     // TODO allow for window scaling
     distToProjPlane = (windowWidth/2.0)/tan(RAD(player.fov_deg/2.0));
     angle_between_rays = (float)player.fov_deg / windowWidth;
+    raycast_surface = SDL_CreateSurface(windowWidth, windowHeight, window_surface->format);
+    raycast_pixels = raycast_surface->pixels;
+    color = SDL_MapRGBA(SDL_GetPixelFormatDetails(window_surface->format), 0, 0x99, 0x99, 0x99, 0xFF);
 
     while (!stop)
     {
@@ -119,16 +118,13 @@ bool inMap(float x, float y)
 
 void draw(void)
 {
-    SDL_Rect s_area;
 
-    SDL_GetRenderViewport(renderer, &s_area);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xFF);
-    SDL_RenderClear(renderer);
+    SDL_ClearSurface(raycast_surface, 0, 0, 0, 0xFF);
 
     float start = player.angle_deg - player.fov_deg/2.0;
     float intersection_x;
     float intersection_y;
-    for (int c = 0; c < s_area.w; c++)
+    for (int c = 0; c < windowWidth; c++)
     {
         float ray_angle_deg = start + c*angle_between_rays;
 
@@ -224,20 +220,30 @@ void draw(void)
         }
 
         // Correct fisheye distortion
-        float d = RAD(ray_angle_deg - player.angle_deg);
-        float cosbeta = cos(d);
-        distance = distance * cosbeta;
+        distance = distance * cos(RAD(ray_angle_deg - player.angle_deg));
 
         // Draw
         float projDrawHeight = (TILE_SIZE / distance) * distToProjPlane;
-        float middle = s_area.h/2.0;
+        float middle = windowHeight/2.0;
 
-        SDL_SetRenderDrawColor(renderer, 0xA0, 0xA0, 0xA0, 0xFF);
-        SDL_RenderLine(renderer, c, middle-(projDrawHeight/2.0), c, middle+(projDrawHeight/2.0));
+        float bottom = middle - (projDrawHeight/2.0);
+        float top = middle + (projDrawHeight/2.0);
 
+        bottom = bottom < 0 ? 0 : bottom;
+        bottom = bottom > windowHeight ? windowHeight : bottom;
+
+        top = top < 0 ? 0 : top;
+        top = top > windowHeight ? windowHeight : top;
+        
+        for (int y = bottom; y < top; y++)
+        {
+            raycast_pixels[c + (y * raycast_surface->w)] = color;
+        }
+                
     }
 
-    SDL_RenderPresent(renderer);
+    SDL_BlitSurface(raycast_surface, 0, window_surface, 0);
+    SDL_UpdateWindowSurface(window);
 
 }
 
@@ -259,12 +265,20 @@ void gameLoop(void)
         }
     }
 
-    player.angle_deg = player.angle_deg + 0.01;
+    player.angle_deg = player.angle_deg + 0.1;
     player.angle_deg = player.angle_deg > 360 ? player.angle_deg - 360 : player.angle_deg;
 
     // Render
     draw();
 
-    // Update window
-    SDL_UpdateWindowSurface(window);
+    static uint64_t last_ticks = 0;
+    static int frames = 0;
+    frames++;
+    uint64_t now = SDL_GetTicks();
+    if (now - last_ticks >= 1000)
+    {
+        SDL_Log("Maze Game - %d FPS", frames);
+        frames = 0;
+        last_ticks = now;
+    }
 }
