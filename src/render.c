@@ -1,4 +1,5 @@
 #include "render.h"
+#include <SDL3/SDL_log.h>
 #include <SDL3/SDL_surface.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -11,23 +12,41 @@ struct Renderer
     SDL_Surface *src_surface;
 };
 
-static inline uint32_t *getPixel(Renderer *renderer, int x, int y)
+static inline uint32_t *rendererPixelAt(Renderer *renderer, int x, int y)
 {
     return &(renderer->pixels[x + y*renderer->width]);
 }
 
-Renderer *createRenderer(int width, int height, Window* window_target)
+Renderer *createRenderer(int width, int height, const Window* window_target)
 {
 
+
     if (window_target == NULL)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Renderer window target is NULL. This should not happen!");
         return NULL;
+    }
 
     Renderer *renderer = malloc(sizeof(*renderer)); // TODO Arena
+
+    if (renderer == NULL)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to allocate memory for renderer");
+        return NULL;
+    }
+
     renderer->width = width;
     renderer->height = height;    
     
     renderer->target_surface = getSurface(window_target);
     renderer->src_surface = SDL_CreateSurface(width, height, SDL_PIXELFORMAT_RGBA32);
+
+    if (renderer->src_surface == NULL)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create renderer surface: %s", SDL_GetError());
+        return NULL;
+    }
+
     renderer->pixels = (uint32_t*)(renderer->src_surface->pixels);
 
     return renderer;
@@ -76,7 +95,39 @@ bool drawVertLine(Renderer *renderer, Color color, int y1, int y2, int x)
         if (y < 0 || y > renderer->height)
             continue;
 
-        *getPixel(renderer, x, y) = color;
+        *rendererPixelAt(renderer, x, y) = color;
+    }
+
+    return true;
+}
+
+bool drawTexturedVertLine(Renderer *renderer, Texture *texture, int texture_xoffset, int y1, int y2, int x)
+{
+    if (renderer == NULL)
+        return false;
+
+    if (y1 > y2)
+    {
+        int temp = y1;
+        y1 = y2;
+        y2 = temp;
+    }
+
+    // Return false if line will never enter the screen
+    if (y2 < 0 || y1 > renderer->height)
+        return false;
+
+    for (int y = y1; y <= y2; y++)
+    {
+        // Only start drawing when on the rendering surface
+        if (y < 0 || y >= renderer->height)
+            continue;
+
+        // Texture y-coord
+        int tex_max_y = getTextureHeight(texture) - 1;
+        int tex_y = (y-y1) * ((float)(tex_max_y)/(y2-y1));
+
+        *rendererPixelAt(renderer, x, y) = getTexturePixel(texture, texture_xoffset, tex_y);
     }
 
     return true;
@@ -110,7 +161,7 @@ bool drawRect(  Renderer *renderer, Color color,
             if (j < 0)
                 continue;
 
-            *getPixel(renderer, j, i) = color;
+            *rendererPixelAt(renderer, j, i) = color;
         }
     }
 

@@ -13,15 +13,24 @@ struct Window
 Window *createWindow(int width, int height, const char* title)
 {
     Window* window = malloc(sizeof(*window)); // TODO Arena
+
+    if (window == NULL)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to allocate memory for window");
+        return NULL;
+    }
+
     window->sdl_window = SDL_CreateWindow(title, width, height, 0);
-    window->width = width;
-    window->height = height;
+
     if (!window->sdl_window)
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
                     "Window creation failed %s\n", SDL_GetError());
         return NULL;
     }
+
+    window->width = width;
+    window->height = height;
 
     return window;
 }
@@ -35,7 +44,7 @@ void destroyWindow(Window* window)
     free(window); // TODO Arena
 }
 
-int getWindowWidth(Window* window)
+int getWindowWidth(const Window* window)
 {
     if (window == NULL)
         return 0;
@@ -43,7 +52,7 @@ int getWindowWidth(Window* window)
     return window->width;
 }
 
-int getWindowHeight(Window* window)
+int getWindowHeight(const Window* window)
 {
     if (window == NULL)
         return 0;
@@ -51,7 +60,7 @@ int getWindowHeight(Window* window)
     return window->height;
 }
 
-SDL_Surface *getSurface(Window *window)
+SDL_Surface *getSurface(const Window *window)
 {
     return SDL_GetWindowSurface(window->sdl_window);
 }

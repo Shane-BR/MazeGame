@@ -1,3 +1,5 @@
+#define STB_IMAGE_IMPLEMENTATION
+
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_log.h>
@@ -6,6 +8,7 @@
 #include <math.h>
 #include "render.h"
 #include "stb_image.h"
+#include "texture.h"
 #include "window.h"
 
 #define MAP_WIDTH 16
@@ -60,6 +63,8 @@ Player player =
 float distToProjPlane;
 float angle_between_rays;
 
+Texture *box_tex;
+
 void gameLoop(void);
 void draw(void);
 bool inMap(float x, float y);
@@ -81,6 +86,8 @@ int main(void)
     // TODO allow for window scaling
     distToProjPlane = (getWindowWidth(window)/2.0)/tan(RAD(player.fov_deg/2.0));
     angle_between_rays = (float)player.fov_deg / getWindowWidth(window);
+    box_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/bricksx64.png");
+    
 
     while (!stop)
     {
@@ -137,6 +144,8 @@ void draw(void)
 
         intersection_y = (int)(player.y/TILE_SIZE) * TILE_SIZE;
 
+        // HORIZONTAL
+
         // Facing up
         if (ray_angle_deg <= 180.0f)
         {
@@ -166,12 +175,16 @@ void draw(void)
             skip = !inMap(intersection_x, intersection_y);
         }
 
+        int texture_xoffset;
         if (!skip)
         {
             distance = fabs((player.x - intersection_x)/cosTheta);
+            texture_xoffset = (unsigned)(intersection_x - (unsigned)intersection_x/TILE_SIZE) % getTextureWidth(box_tex);
         }
 
         intersection_x = (int)(player.x/TILE_SIZE) * TILE_SIZE;
+
+        // VERTICAL
 
         // Facing left
         if (ray_angle_deg > 90.0f && ray_angle_deg < 270.0f)
@@ -204,11 +217,20 @@ void draw(void)
         if (!skip)
         {
             float temp = fabs((player.x - intersection_x)/cosTheta);
-            distance = temp < distance ? temp : distance;
+
+            if (temp < distance)
+            {
+                distance =  temp;
+                texture_xoffset = (unsigned)(intersection_y - (unsigned)intersection_y/TILE_SIZE) % getTextureWidth(box_tex);
+            }
+
         }
 
-        // Correct fisheye distortion
-        distance = distance * cos(RAD(ray_angle_deg - player.angle_deg));
+        if (distance == FLT_MAX)
+            continue;
+
+        // Correct fisheye distortion FIXME
+        distance = distance * cos(RAD(player.angle_deg - ray_angle_deg));
 
         // Draw
         float projDrawHeight = (TILE_SIZE / distance) * distToProjPlane;
@@ -222,8 +244,8 @@ void draw(void)
 
         y2 = y2 < 0 ? 0 : y2;
         y2 = y2 > windowHeight ? windowHeight : y2;
-        
-        drawVertLine(renderer, MG_COLOR_CORAL, y1, y2, c);         
+
+        drawTexturedVertLine(renderer, box_tex, texture_xoffset, y1, y2, c);    
     }
 
     updateRenderer(renderer, window);

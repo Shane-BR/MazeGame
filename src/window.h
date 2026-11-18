@@ -8,10 +8,10 @@ typedef struct Window Window;
 
 Window *createWindow(int width, int height, const char* title);
 void destroyWindow(Window* window);
-int getWindowWidth(Window* window);
-int getWindowHeight(Window* window);
+int getWindowWidth(const Window* window);
+int getWindowHeight(const Window* window);
 bool resizeWindow(Window* window, int n_width, int n_height);
-SDL_Surface *getSurface(Window *window);
+SDL_Surface *getSurface(const Window *window);
 void updateWindow(Window *window);
 
 #endif
