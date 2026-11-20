@@ -20,18 +20,12 @@ static inline uint32_t *rendererPixelAt(Renderer *renderer, int x, int y)
 Renderer *createRenderer(int width, int height, const Window* window_target)
 {
 
-
-    if (window_target == NULL)
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Renderer window target is NULL. This should not happen!");
-        return NULL;
-    }
-
     Renderer *renderer = malloc(sizeof(*renderer)); // TODO Arena
 
     if (renderer == NULL)
     {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to allocate memory for renderer");
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
+            "createRenderer: Failed to allocate memory for renderer");
         return NULL;
     }
 
@@ -43,7 +37,8 @@ Renderer *createRenderer(int width, int height, const Window* window_target)
 
     if (renderer->src_surface == NULL)
     {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Failed to create renderer surface: %s", SDL_GetError());
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
+            "Failed to create renderer surface: %s", SDL_GetError());
         return NULL;
     }
 
@@ -53,58 +48,53 @@ Renderer *createRenderer(int width, int height, const Window* window_target)
 
 }
 
-bool destroyRenderer(Renderer *renderer)
+void destroyRenderer(Renderer *renderer)
 {
-    if (renderer == NULL)
-        return false;
-
     SDL_DestroySurface(renderer->src_surface);
     free(renderer);
-    return true;
 }
 
-bool clearRenderer(Renderer *renderer)
+int getRendererWidth(Renderer *renderer)
 {
-    if (renderer == NULL)
-        return false;
+    return renderer->width;
+}
 
+int getRendererHeight(Renderer *renderer)
+{
+
+    return renderer->height;
+}
+
+void clearRenderer(Renderer *renderer)
+{
     SDL_ClearSurface(renderer->src_surface, 0, 0, 0, 1.0);
-
-    return true;
-    
 }
 
-bool drawVertLine(Renderer *renderer, Color color, int y1, int y2, int x)
+void drawVertLine(Renderer *renderer, Color color, int y1, int y2, int x)
 {
-    if (renderer == NULL)
-        return false;
 
-    int iteration_dir = 1;
-    if (y1 > y2) iteration_dir = -1;
+    if (y1 > y2)
+    {
+        int temp = y1;
+        y1 = y2;
+        y2 = temp;
+    }
 
-    // Return false if line will never enter the screen
-    if (iteration_dir == -1 && y1 < 0)
-        return false;
-    
-    if (iteration_dir == 1 && y1 > renderer->height)
-        return false;
-
-    for (int y = y1; y != y2; y += iteration_dir)
+    for (int y = y1; y <= y2; y ++)
     {
         // Only start drawing when on the rendering surface
-        if (y < 0 || y > renderer->height)
+        if (y < 0 || y >= renderer->height)
             continue;
 
         *rendererPixelAt(renderer, x, y) = color;
     }
-
-    return true;
 }
 
-bool drawTexturedVertLine(Renderer *renderer, Texture *texture, int texture_xoffset, int y1, int y2, int x)
+void drawTexturedVertLine(Renderer *renderer, Texture *texture, int texture_xoffset, int y1, int y2, int x)
 {
-    if (renderer == NULL)
-        return false;
+
+    if (y1 == y2)
+        return;
 
     if (y1 > y2)
     {
@@ -115,7 +105,7 @@ bool drawTexturedVertLine(Renderer *renderer, Texture *texture, int texture_xoff
 
     // Return false if line will never enter the screen
     if (y2 < 0 || y1 > renderer->height)
-        return false;
+        return;
 
     for (int y = y1; y <= y2; y++)
     {
@@ -129,16 +119,18 @@ bool drawTexturedVertLine(Renderer *renderer, Texture *texture, int texture_xoff
 
         *rendererPixelAt(renderer, x, y) = getTexturePixel(texture, texture_xoffset, tex_y);
     }
-
-    return true;
 }
 
-bool drawRect(  Renderer *renderer, Color color,
+void drawTextureSampledPixel(Renderer *renderer, Texture *texture, 
+    int tex_x, int tex_y, int x, int y)
+{
+    *rendererPixelAt(renderer, x, y) = getTexturePixel(texture, tex_x, tex_y);
+}
+
+void drawRect(  Renderer *renderer, Color color,
                 int x, int y, 
                 int width, int height)
 {
-    if (renderer == NULL)
-        return false;
 
     // TODO handle negative volume
 
@@ -148,7 +140,7 @@ bool drawRect(  Renderer *renderer, Color color,
         (x + width < 0 || y + height < 0) &&
         (x > renderer->width || y > renderer->height)
     )
-        return false;
+        return;
 
     for (int i = y; i < y+height; i++)
     {
@@ -164,8 +156,6 @@ bool drawRect(  Renderer *renderer, Color color,
             *rendererPixelAt(renderer, j, i) = color;
         }
     }
-
-    return true;
 }
 
 void updateRenderer(Renderer *renderer, Window *window)

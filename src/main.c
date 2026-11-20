@@ -60,10 +60,11 @@ Player player =
 };
 
 // TODO MOVE!!!
-float distToProjPlane;
+float dist_to_proj_plane;
 float angle_between_rays;
 
 Texture *box_tex;
+Texture *floor_tex;
 
 void gameLoop(void);
 void draw(void);
@@ -84,16 +85,18 @@ int main(void)
     stop = false;
 
     // TODO allow for window scaling
-    distToProjPlane = (getWindowWidth(window)/2.0)/tan(RAD(player.fov_deg/2.0));
+    dist_to_proj_plane = (getWindowWidth(window)/2.0)/tan(RAD(player.fov_deg/2.0));
     angle_between_rays = (float)player.fov_deg / getWindowWidth(window);
     box_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/bricksx64.png");
-    
+    floor_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/stein2.png");
 
     while (!stop)
     {
         gameLoop();
     }
 
+    destroyTexture(box_tex);
+    destroyTexture(floor_tex);
     destroyRenderer(renderer);
     destroyWindow(window);
     SDL_Quit();
@@ -113,13 +116,16 @@ void draw(void)
 
     clearRenderer(renderer);
 
+    // TODO This whole thing needs refactoring, optimising, you name it.
+    // Currently in the "just make it work" stage.
+
     float start = player.angle_deg - player.fov_deg/2.0;
     float intersection_x;
     float intersection_y;
-    int windowWidth = getWindowWidth(window);
-    int windowHeight = getWindowHeight(window);
+    int rendererWidth = getRendererWidth(renderer);
+    int rendererHeight = getRendererHeight(renderer);
 
-    for (int c = 0; c < windowWidth; c++)
+    for (int c = 0; c < rendererWidth; c++)
     {
         float ray_angle_deg = start + c*angle_between_rays;
 
@@ -138,7 +144,8 @@ void draw(void)
 
         float rad = RAD(ray_angle_deg);
         float tanTheta = tan(rad);
-        float cosTheta = cos(rad);
+        float cos_theta = cos(rad);
+        float sin_theta = sin(rad);
         float distance = FLT_MAX;
         float dy, dx;
 
@@ -178,7 +185,7 @@ void draw(void)
         int texture_xoffset;
         if (!skip)
         {
-            distance = fabs((player.x - intersection_x)/cosTheta);
+            distance = fabs((player.x - intersection_x)/cos_theta);
             texture_xoffset = (unsigned)(intersection_x - (unsigned)intersection_x/TILE_SIZE) % getTextureWidth(box_tex);
         }
 
@@ -216,7 +223,7 @@ void draw(void)
 
         if (!skip)
         {
-            float temp = fabs((player.x - intersection_x)/cosTheta);
+            float temp = fabs((player.x - intersection_x)/cos_theta);
 
             if (temp < distance)
             {
@@ -230,22 +237,88 @@ void draw(void)
             continue;
 
         // Correct fisheye distortion FIXME
-        distance = distance * cos(RAD(player.angle_deg - ray_angle_deg));
+        float cos_beta = cos(RAD(player.angle_deg - ray_angle_deg));
+        distance = distance * cos_beta;
 
         // Draw
-        float projDrawHeight = (TILE_SIZE / distance) * distToProjPlane;
-        float middle = windowHeight/2.0;
+        float projDrawHeight = (TILE_SIZE / distance) * dist_to_proj_plane;
+        float proj_centre_y = rendererHeight/2.0;
 
-        float y1 = middle - (projDrawHeight/2.0);
-        float y2 = middle + (projDrawHeight/2.0);
+        int y1 = proj_centre_y - (projDrawHeight/2.0);
+        int y2 = proj_centre_y + (projDrawHeight/2.0);
 
         y1 = y1 < 0 ? 0 : y1;
-        y1 = y1 > windowHeight ? windowHeight : y1;
+        y1 = y1 > rendererHeight ? rendererHeight : y1;
 
         y2 = y2 < 0 ? 0 : y2;
-        y2 = y2 > windowHeight ? windowHeight : y2;
+        y2 = y2 > rendererHeight ? rendererHeight : y2;
 
         drawTexturedVertLine(renderer, box_tex, texture_xoffset, y1, y2, c);    
+
+        // FLOOR CASTING
+        for (int r = y2; r < rendererHeight; r++)
+        {
+            if (r == proj_centre_y)
+                continue;
+
+            float diagonal_dist = 
+                (player.height * dist_to_proj_plane) / 
+                ((r - proj_centre_y) * cos_beta);
+
+            // Vertical component of floor is 0, duh
+            int floor_x = fabs(floor(diagonal_dist * sin_theta));
+            int floor_y = fabs(floor(diagonal_dist * cos_theta));
+
+            floor_x += player.x;
+            floor_y += player.y;
+
+            // TODO allow for multiple floor textures
+            int floor_grid_x = (floor_x/TILE_SIZE);
+            int floor_grid_y = (floor_y/TILE_SIZE);
+
+            if (floor_grid_x < 0 || floor_grid_x >= TILE_SIZE || 
+                floor_grid_y < 0 || floor_grid_y >= TILE_SIZE)
+                continue;
+
+            int tex_x = floor_x % getTextureWidth(floor_tex);
+            int tex_y = floor_y % getTextureHeight(floor_tex);
+
+            drawTextureSampledPixel(renderer, floor_tex, tex_x, tex_y, c, r);
+
+        }
+
+        // ROOF CASTING
+        for (int r = y1; r >= 0; r--)
+        {
+            if (r == proj_centre_y)
+                continue;
+
+            float diagonal_dist = 
+                (player.height * dist_to_proj_plane) / 
+                ((r - proj_centre_y) * cos_beta);
+
+            // Vertical component of floor is 0, duh
+            int roof_x = fabs(floor(diagonal_dist * sin_theta));
+            int roof_y = fabs(floor(diagonal_dist * cos_theta));
+
+            roof_x += player.x;
+            roof_y += player.y;
+
+            // TODO allow for multiple floor textures
+            int roof_grid_x = (roof_x/TILE_SIZE);
+            int roof_grid_y = (roof_y/TILE_SIZE);
+
+            if (roof_grid_x < 0 || roof_grid_x >= TILE_SIZE || 
+                roof_grid_y < 0 || roof_grid_y >= TILE_SIZE)
+                continue;
+
+            int tex_x = roof_x % getTextureWidth(floor_tex);
+            int tex_y = roof_y % getTextureHeight(floor_tex);
+
+            drawTextureSampledPixel(renderer, floor_tex, tex_x, tex_y, c, r);
+
+        }
+
     }
 
     updateRenderer(renderer, window);

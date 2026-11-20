@@ -7,7 +7,7 @@
 typedef struct Texture Texture;
 
 Texture *createTexture(const char *filepath);
-bool destroyTexture(Texture *texture);
+void destroyTexture(Texture *texture);
 int getTextureWidth(const Texture *texture);
 int getTextureHeight(const Texture *texture);
 Color getTexturePixel(const Texture *texture, int x, int y);

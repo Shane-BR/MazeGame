@@ -1,6 +1,7 @@
 #include "window.h"
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_video.h>
+#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -37,26 +38,19 @@ Window *createWindow(int width, int height, const char* title)
 
 void destroyWindow(Window* window)
 {
-    if (window == NULL)
-        return;
-
     SDL_DestroyWindow(window->sdl_window);
     free(window); // TODO Arena
 }
 
 int getWindowWidth(const Window* window)
 {
-    if (window == NULL)
-        return 0;
+    assert(window != NULL);
 
     return window->width;
 }
 
 int getWindowHeight(const Window* window)
 {
-    if (window == NULL)
-        return 0;
-
     return window->height;
 }
 
@@ -65,12 +59,9 @@ SDL_Surface *getSurface(const Window *window)
     return SDL_GetWindowSurface(window->sdl_window);
 }
 
-bool resizeWindow(Window* window, int n_width, int n_height)
+void resizeWindow(Window* window, int n_width, int n_height)
 {
-    if (window == NULL)
-        return false;
-
-    return true; // TODO
+    // TODO
 }
 
 void updateWindow(Window *window)

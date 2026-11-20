@@ -9,12 +9,16 @@
 typedef struct Renderer Renderer;
 
 Renderer *createRenderer(int width, int height, const Window* window_target);
-bool destroyRenderer(Renderer *renderer);
-bool clearRenderer(Renderer *renderer);
-bool drawVertLine(Renderer *renderer, Color color, int y1, int y2, int x);
-bool drawTexturedVertLine(  Renderer *renderer, Texture *texture, int texture_offset, 
+void destroyRenderer(Renderer *renderer);
+int getRendererWidth(Renderer *renderer);
+int getRendererHeight(Renderer *renderer);
+void clearRenderer(Renderer *renderer);
+void drawVertLine(Renderer *renderer, Color color, int y1, int y2, int x);
+void drawTexturedVertLine(  Renderer *renderer, Texture *texture, int texture_offset, 
                             int y1, int y2, int x);
-bool drawRect(  Renderer *renderer, Color color,
+void drawTextureSampledPixel(Renderer *renderer, Texture *texture, 
+    int tex_x, int tex_y, int x, int y);
+void drawRect(  Renderer *renderer, Color color,
                 int x, int y, 
                 int width, int height);
 
