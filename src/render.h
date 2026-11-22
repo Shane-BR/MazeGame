@@ -19,6 +19,9 @@ void clearRenderer(Renderer *renderer);
 void drawVertLine(Renderer *renderer, Color color, int y1, int y2, int x);
 void drawTexturedVertLine(  Renderer *renderer, int texture_id, int texture_offset, 
                             int y1, int y2, int x);
+void drawHorLine(Renderer *renderer, Color color, int x1, int x2, int y);
+void drawTexturedHorLine(Renderer *renderer, int texture_id, int texture_xoffset, 
+    int x1, int x2, int y);
 void drawTextureSampledPixel(Renderer *renderer, int texture_id, 
     int tex_x, int tex_y, int x, int y);
 void drawRect(  Renderer *renderer, Color color,

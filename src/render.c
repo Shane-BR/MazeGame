@@ -110,6 +110,59 @@ void drawTexturedVertLine(Renderer *renderer, int texture_id, int texture_xoffse
     }
 }
 
+void drawHorLine(Renderer *renderer, Color color, int x1, int x2, int y)
+{
+
+    if (x1 > x2)
+    {
+        int temp = x1;
+        x1 = x2;
+        x2 = temp;
+    }
+
+    for (int x = x1; x <= x2; x ++)
+    {
+        // Only start drawing when on the rendering surface
+        if (x < 0 || x >= renderer->width)
+            continue;
+
+        *rendererPixelAt(renderer, x, y) = color;
+    }
+}
+
+// TODO allow to choose which direction the texture is sampled
+void drawTexturedHorLine(Renderer *renderer, int texture_id, int texture_xoffset, int x1, int x2, int y)
+{
+
+    if (x1 == x2)
+        return;
+
+    if (x1 > x2)
+    {
+        int temp = x1;
+        x1 = x2;
+        x2 = temp;
+    }
+
+    // Return false if line will never enter the screen
+    if (x2 < 0 || x1 > renderer->width)
+        return;
+
+    for (int x = x1; x <= x2; x++)
+    {
+        // Only start drawing when on the rendering surface
+        if (x < 0 || x >= renderer->width)
+            continue;
+
+        // Texture y-coord (Flipped)
+        Texture *texture = getTexture(texture_id);
+        int tex_max_y = texture->height - 1;
+        int tex_y = (x-x1) * ((float)(tex_max_y)/(x2-x1));
+
+        *rendererPixelAt(renderer, x, y) = getTexturePixel(texture, texture_xoffset, tex_y);
+    }
+}
+
 void drawTextureSampledPixel(Renderer *renderer, int texture_id, 
     int tex_x, int tex_y, int x, int y)
 {
