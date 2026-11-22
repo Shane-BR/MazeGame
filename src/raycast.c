@@ -1,13 +1,8 @@
 #include "raycast.h"
+#include "texture.h"
 #include <math.h>
 
 #define RAD(x) ((x)*(PI/180.0))
-
-enum IntersectionSide
-{
-    Horizontal,
-    Vertical
-};
 
 void raycast(Renderer *renderer, const GameState *g_state, Vec2f camera_plane)
 {
@@ -34,7 +29,7 @@ void raycast(Renderer *renderer, const GameState *g_state, Vec2f camera_plane)
         Vec2i step;
 
         bool hit = false;
-        enum IntersectionSide side;
+        bool horizontal_intersection;
 
         if (ray_dir.x < 0)
         {
@@ -64,13 +59,13 @@ void raycast(Renderer *renderer, const GameState *g_state, Vec2f camera_plane)
             {
                 next_hor_dist += delta_hor_dist;
                 cur_map_pos.x += step.x;
-                side = Horizontal;
+                horizontal_intersection = true;
             }
             else 
             {
                 next_vert_dist += delta_vert_dist;
                 cur_map_pos.y += step.y;
-                side = Vertical;
+                horizontal_intersection = false;
             }
 
             if (cur_map_pos.x < 0 || cur_map_pos.x >= g_state->map_width || 
@@ -88,7 +83,7 @@ void raycast(Renderer *renderer, const GameState *g_state, Vec2f camera_plane)
         }
 
         // Get distance to camera plane by stepping back
-        if (side == Horizontal)
+        if (horizontal_intersection)
         {
             perp_wall_dist = next_hor_dist - delta_hor_dist;
         }
@@ -105,11 +100,35 @@ void raycast(Renderer *renderer, const GameState *g_state, Vec2f camera_plane)
         int draw_end = renderer_centre + (line_height / 2);
         if (draw_end >= renderer->height) draw_end = renderer->height-1;
 
-        Color tmp = MG_COLOR_BLUE;
+        // Draw it
+        int texture_id = 0;
+        float wall_x;
 
-        if (side == Vertical) tmp = tmp / 2;
+        if (!horizontal_intersection)
+        {
+            wall_x = player->position.x + perp_wall_dist * ray_dir.x;
+        }
+        else 
+        {
+            wall_x = player->position.y + perp_wall_dist * ray_dir.y;
+        }
 
-        drawVertLine(renderer, tmp, draw_start, draw_end, col);
+        // How far along tile
+        wall_x -= floor(wall_x);
+
+        int tex_w = getTexture(texture_id)->width;
+        int texture_xoffset = (int)(wall_x * tex_w);
+        
+        if(horizontal_intersection && ray_dir.x > 0) 
+        {
+            texture_xoffset = tex_w - texture_xoffset - 1;
+        }
+        if(!horizontal_intersection && ray_dir.y < 0) 
+        {
+            texture_xoffset = tex_w - texture_xoffset - 1;
+        }
+
+        drawTexturedVertLine(renderer, texture_id, texture_xoffset, draw_start, draw_end, col);
 
     }
 }

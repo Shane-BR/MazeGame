@@ -1,16 +1,19 @@
+#define STB_IMAGE_IMPLEMENTATION
+
 #include "game.h"
 #include "raycast.h"
-#define STB_IMAGE_IMPLEMENTATION
+#include "render.h"
+#include "stb_image.h"
+#include "texture.h"
+#include "window.h"
+
+#include <Tracy/tracy/TracyC.h>
 
 #include <SDL3/SDL_events.h>
 #include <SDL3/SDL_init.h>
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_timer.h>
-#include <float.h>
-#include "render.h"
-#include "stb_image.h"
-#include "texture.h"
-#include "window.h"
+#include <math.h>
 
 #define MAP_WIDTH 16
 #define MAP_HEIGHT 16
@@ -52,8 +55,8 @@ int main(void)
 
     stop = false;
 
-    box_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/bricksx64.png");
-    floor_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/stein2.png");
+    box_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/bricksx64.png", 0);
+    floor_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/stein2.png", 1);
 
     while (!stop)
     {

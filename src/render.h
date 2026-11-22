@@ -1,7 +1,6 @@
 #ifndef MG_RENDER_H
 #define MG_RENDER_H
 
-#include "texture.h"
 #include "window.h"
 #include "color.h"
 #include <stdbool.h>
@@ -18,9 +17,9 @@ Renderer *createRenderer(int width, int height, const Window* window_target);
 void destroyRenderer(Renderer *renderer);
 void clearRenderer(Renderer *renderer);
 void drawVertLine(Renderer *renderer, Color color, int y1, int y2, int x);
-void drawTexturedVertLine(  Renderer *renderer, Texture *texture, int texture_offset, 
+void drawTexturedVertLine(  Renderer *renderer, int texture_id, int texture_offset, 
                             int y1, int y2, int x);
-void drawTextureSampledPixel(Renderer *renderer, Texture *texture, 
+void drawTextureSampledPixel(Renderer *renderer, int texture_id, 
     int tex_x, int tex_y, int x, int y);
 void drawRect(  Renderer *renderer, Color color,
                 int x, int y, 

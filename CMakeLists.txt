@@ -5,6 +5,8 @@ project(MazeGame LANGUAGES C)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_STANDARD 99)
 
+option(ENABLE_GPROF "Build with gprof instrumentation (-pg)" OFF)
+
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
@@ -24,6 +26,13 @@ PRIVATE
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+
+if(ENABLE_GPROF)
+    message(STATUS "gprof profiling enabled")
+    target_compile_options(${PROJECT_NAME} PRIVATE -pg -fno-omit-frame-pointer)
+    target_link_options(${PROJECT_NAME} PRIVATE -pg)
+endif()
+
 target_compile_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Debug>:-fsanitize=address;-fno-omit-frame-pointer>")
 target_link_options(${PROJECT_NAME} PRIVATE "$<$<CONFIG:Debug>:-fsanitize=address>")
 

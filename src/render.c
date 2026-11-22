@@ -1,4 +1,5 @@
 #include "render.h"
+#include "texture.h"
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_surface.h>
 #include <stdint.h>
@@ -71,7 +72,7 @@ void drawVertLine(Renderer *renderer, Color color, int y1, int y2, int x)
     }
 }
 
-void drawTexturedVertLine(Renderer *renderer, Texture *texture, int texture_xoffset, int y1, int y2, int x)
+void drawTexturedVertLine(Renderer *renderer, int texture_id, int texture_xoffset, int y1, int y2, int x)
 {
 
     if (y1 == y2)
@@ -95,17 +96,25 @@ void drawTexturedVertLine(Renderer *renderer, Texture *texture, int texture_xoff
             continue;
 
         // Texture y-coord
+        Texture *texture = getTexture(texture_id);
         int tex_max_y = texture->height - 1;
         int tex_y = (y-y1) * ((float)(tex_max_y)/(y2-y1));
 
+        /*
+            TODO Sort out cache miss on getting texture pixel.
+            We are looping through each row, as textures are stored as y rows of x. 
+            By reversing this, We may speed up the renderer.
+            Actually, there may be a cache miss in both of these functions.
+        */
         *rendererPixelAt(renderer, x, y) = getTexturePixel(texture, texture_xoffset, tex_y);
     }
 }
 
-void drawTextureSampledPixel(Renderer *renderer, Texture *texture, 
+void drawTextureSampledPixel(Renderer *renderer, int texture_id, 
     int tex_x, int tex_y, int x, int y)
 {
-    *rendererPixelAt(renderer, x, y) = getTexturePixel(texture, tex_x, tex_y);
+    *rendererPixelAt(renderer, x, y) = 
+        getTexturePixel(getTexture(texture_id), tex_x, tex_y);
 }
 
 void drawRect(  Renderer *renderer, Color color,

@@ -3,7 +3,19 @@
 #include <SDL3/SDL_log.h>
 #include <stdlib.h>
 
-Texture *createTexture(const char *filepath)
+#define MAX_TEXTURES 32
+
+typedef struct
+{
+    int count;
+    Texture *textures[MAX_TEXTURES];
+} TextureTable;
+
+TextureTable table;
+
+void registerTexture(Texture *texture, int id);
+
+Texture *createTexture(const char *filepath, int id)
 {
     Texture *texture = malloc(sizeof(*texture)); // TODO Arena
 
@@ -23,7 +35,15 @@ Texture *createTexture(const char *filepath)
         return NULL;
     }
 
+    registerTexture(texture, id);
+
     return texture;
+}
+
+void registerTexture(Texture *texture, int id)
+{
+    table.textures[id] = texture;
+    table.count++;
 }
 
 void destroyTexture(Texture *texture)
@@ -45,4 +65,9 @@ Color getTexturePixel(const Texture *texture, int x, int y)
     }
 
     return texture->pixels[x + y*texture->width];
+}
+
+Texture *getTexture(int id)
+{
+    return table.textures[id];
 }
