@@ -27,8 +27,8 @@ Window *createWindow(int width, int height, const char* title)
     window->height = height;
 
     // TODO temp: make an option
-    //SDL_HideCursor();
-    //SDL_SetWindowMouseGrab(window->sdl_window, true);
+    SDL_HideCursor();
+    SDL_SetWindowMouseGrab(window->sdl_window, true);
 
     return window;
 }

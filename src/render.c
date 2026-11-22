@@ -145,7 +145,8 @@ void updateRenderer(Renderer *renderer, Window *window)
         return;
 
 
-    if (!SDL_BlitSurface(renderer->src_surface, 0, renderer->target_surface, 0))
+    if (!SDL_BlitSurface(renderer->src_surface, 0, 
+        renderer->target_surface, 0))
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
             "updateRenderer: Error blitting surface: %s", SDL_GetError());

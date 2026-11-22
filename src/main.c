@@ -81,6 +81,7 @@ void draw(void)
 void gameLoop(void)
 {
     SDL_Event e;
+    Player *player = game_state->player;
     while (SDL_PollEvent(&e))
     {
         if (e.type == SDL_EVENT_QUIT)
@@ -97,13 +98,49 @@ void gameLoop(void)
 
         if (e.type == SDL_EVENT_MOUSE_MOTION)
         {
+            float dir_x = player->direction.x;
+            float dir_y = player->direction.y;
+            float rad = -RAD(e.motion.xrel) * 0.2f;
 
+            player->direction.x = dir_x * cos(rad) - dir_y * sin(rad);
+            player->direction.y = dir_x * sin(rad) + dir_y * cos(rad);
+
+            camera_plane.x = player->direction.y;
+            camera_plane.y = -player->direction.x;
+            float fov_tan = tan(RAD(player->fov_deg / 2.0f));
+            vec2f_scale(&camera_plane, 2*fov_tan);
         }
     }
 
 
     // Keyboard
     const bool *key_states = SDL_GetKeyboardState(NULL);
+
+    // TODO collisions
+    if (key_states[SDL_SCANCODE_W])
+    {
+        player->position.x += player->direction.x * player->movement_speed;
+        player->position.y += player->direction.y * player->movement_speed;
+    }
+    
+    if (key_states[SDL_SCANCODE_S])
+    {
+        player->position.x -= player->direction.x * player->movement_speed;
+        player->position.y -= player->direction.y * player->movement_speed;
+    }
+
+    Vec2f left_dir = {-player->direction.y, player->direction.x};
+    if (key_states[SDL_SCANCODE_A])
+    {
+        player->position.x += left_dir.x * player->movement_speed;
+        player->position.y += left_dir.y * player->movement_speed;
+    }
+
+    if (key_states[SDL_SCANCODE_D])
+    {
+        player->position.x -= left_dir.x * player->movement_speed;
+        player->position.y -= left_dir.y * player->movement_speed;
+    }
 
     // Render
     draw();

@@ -56,7 +56,7 @@ GameState *initGame(int map_w, int map_h)
     game_state->player->fov_deg = 60.0f;
     game_state->player->position.x = 2;
     game_state->player->position.y = 2;
-    game_state->player->movement_speed = 1.0f;
+    game_state->player->movement_speed = 0.01f;
 
     return game_state;
 }
