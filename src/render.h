@@ -6,12 +6,16 @@
 #include "color.h"
 #include <stdbool.h>
 
-typedef struct Renderer Renderer;
+typedef struct
+{
+    int width, height;
+    uint32_t *pixels;
+    SDL_Surface *target_surface;
+    SDL_Surface *src_surface;
+} Renderer;
 
 Renderer *createRenderer(int width, int height, const Window* window_target);
 void destroyRenderer(Renderer *renderer);
-int getRendererWidth(Renderer *renderer);
-int getRendererHeight(Renderer *renderer);
 void clearRenderer(Renderer *renderer);
 void drawVertLine(Renderer *renderer, Color color, int y1, int y2, int x);
 void drawTexturedVertLine(  Renderer *renderer, Texture *texture, int texture_offset, 

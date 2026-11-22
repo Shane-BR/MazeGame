@@ -1,15 +1,8 @@
 #include "window.h"
 #include <SDL3/SDL_log.h>
-#include <SDL3/SDL_video.h>
-#include <assert.h>
+#include <SDL3/SDL_mouse.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-struct Window
-{
-    int width, height;
-    SDL_Window* sdl_window;
-};
 
 Window *createWindow(int width, int height, const char* title)
 {
@@ -33,6 +26,10 @@ Window *createWindow(int width, int height, const char* title)
     window->width = width;
     window->height = height;
 
+    // TODO temp: make an option
+    //SDL_HideCursor();
+    //SDL_SetWindowMouseGrab(window->sdl_window, true);
+
     return window;
 }
 
@@ -40,18 +37,6 @@ void destroyWindow(Window* window)
 {
     SDL_DestroyWindow(window->sdl_window);
     free(window); // TODO Arena
-}
-
-int getWindowWidth(const Window* window)
-{
-    assert(window != NULL);
-
-    return window->width;
-}
-
-int getWindowHeight(const Window* window)
-{
-    return window->height;
 }
 
 SDL_Surface *getSurface(const Window *window)

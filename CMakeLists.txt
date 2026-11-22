@@ -19,6 +19,8 @@ PRIVATE
     src/render.c
     src/window.c
     src/texture.c
+    src/raycast.c
+    src/game.c
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)

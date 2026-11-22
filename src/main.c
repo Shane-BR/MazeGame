@@ -1,3 +1,5 @@
+#include "game.h"
+#include "raycast.h"
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <SDL3/SDL_events.h>
@@ -5,7 +7,6 @@
 #include <SDL3/SDL_log.h>
 #include <SDL3/SDL_timer.h>
 #include <float.h>
-#include <math.h>
 #include "render.h"
 #include "stb_image.h"
 #include "texture.h"
@@ -14,64 +15,24 @@
 #define MAP_WIDTH 16
 #define MAP_HEIGHT 16
 #define TILE_SIZE 32
-#define PI 3.14159265358979323846
-#define RAD(x) ((x)*(PI/180.0))
 
 Window *window;
 Renderer *renderer;
 bool stop;
 
-char map[MAP_WIDTH][MAP_HEIGHT] = 
-{
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1 },
-    { 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
-};
-
-typedef struct
-{
-    uint8_t height;
-    uint8_t fov_deg;
-    float angle_deg;
-    float x;
-    float y;
-} 
-Player;
-
-Player player = 
-{
-    .height = 32,
-    .fov_deg = 60,
-    .angle_deg = 60,
-    (MAP_WIDTH/2.0)*TILE_SIZE, (MAP_HEIGHT/2.0)*TILE_SIZE
-};
-
-// TODO MOVE!!!
-float dist_to_proj_plane;
-float angle_between_rays;
-
+// TODO MOVE!
+GameState *game_state;
 Texture *box_tex;
 Texture *floor_tex;
 
+Vec2f camera_plane;
+
 void gameLoop(void);
 void draw(void);
-bool inMap(float x, float y);
 
 int main(void)
 {
+
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
@@ -80,13 +41,17 @@ int main(void)
     }
 
     window = createWindow(1920, 1080, "Maze Game");
-    renderer = createRenderer(getWindowWidth(window), getWindowHeight(window), window);
+    renderer = createRenderer(window->width, window->height, window);
+    game_state = initGame(MAP_WIDTH, MAP_HEIGHT);
+
+    camera_plane.x = game_state->player->direction.y;
+    camera_plane.y = -game_state->player->direction.x;
+
+    float fov_tan = tan(RAD(game_state->player->fov_deg / 2.0f));
+    vec2f_scale(&camera_plane, 2*fov_tan);
 
     stop = false;
 
-    // TODO allow for window scaling
-    dist_to_proj_plane = (getWindowWidth(window)/2.0)/tan(RAD(player.fov_deg/2.0));
-    angle_between_rays = (float)player.fov_deg / getWindowWidth(window);
     box_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/bricksx64.png");
     floor_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/stein2.png");
 
@@ -103,223 +68,12 @@ int main(void)
     return 0;
 }
 
-bool inMap(float x, float y)
-{
-    return  x > 0 &&
-            x < MAP_WIDTH*TILE_SIZE &&
-            y > 0 &&
-            y < MAP_HEIGHT*TILE_SIZE;
-}
-
 void draw(void)
 {
 
     clearRenderer(renderer);
 
-    // TODO This whole thing needs refactoring, optimising, you name it.
-    // Currently in the "just make it work" stage.
-
-    float start = player.angle_deg - player.fov_deg/2.0;
-    float intersection_x;
-    float intersection_y;
-    int rendererWidth = getRendererWidth(renderer);
-    int rendererHeight = getRendererHeight(renderer);
-
-    for (int c = 0; c < rendererWidth; c++)
-    {
-        float ray_angle_deg = start + c*angle_between_rays;
-
-        // Undefined tan
-        if(ray_angle_deg == 90.0f || ray_angle_deg == 270.0f)
-            continue;
-
-        if (ray_angle_deg > 360.0f)
-        {
-            ray_angle_deg -= 360.0f;
-        }
-        else if (ray_angle_deg < 0)
-        {
-            ray_angle_deg += 360.0f;
-        }
-
-        float rad = RAD(ray_angle_deg);
-        float tanTheta = tan(rad);
-        float cos_theta = cos(rad);
-        float sin_theta = sin(rad);
-        float distance = FLT_MAX;
-        float dy, dx;
-
-        intersection_y = (int)(player.y/TILE_SIZE) * TILE_SIZE;
-
-        // HORIZONTAL
-
-        // Facing up
-        if (ray_angle_deg <= 180.0f)
-        {
-            // -1 so that the intersection is inside of the tile
-            intersection_y -= 1;
-            dy = -TILE_SIZE;
-        }
-        else // Facing down
-        {
-            intersection_y += TILE_SIZE; // Intersected with lower tile
-            dy = TILE_SIZE;
-        }
-
-
-        intersection_x = player.x + (player.y - intersection_y)/tanTheta;
-        bool skip = !inMap(intersection_x, intersection_y);
-
-        dx = (-dy) / tanTheta;
-
-        while (!skip &&
-                map [(unsigned int)intersection_y/TILE_SIZE]
-                    [(unsigned int)intersection_x/TILE_SIZE] == 0)
-        {
-            intersection_x += dx;
-            intersection_y += dy;
-
-            skip = !inMap(intersection_x, intersection_y);
-        }
-
-        int texture_xoffset;
-        if (!skip)
-        {
-            distance = fabs((player.x - intersection_x)/cos_theta);
-            texture_xoffset = (unsigned)(intersection_x - (unsigned)intersection_x/TILE_SIZE) % getTextureWidth(box_tex);
-        }
-
-        intersection_x = (int)(player.x/TILE_SIZE) * TILE_SIZE;
-
-        // VERTICAL
-
-        // Facing left
-        if (ray_angle_deg > 90.0f && ray_angle_deg < 270.0f)
-        {
-            intersection_x -= 1;
-            dx = -TILE_SIZE;
-        }
-        else 
-        {
-            intersection_x += TILE_SIZE;
-            dx = TILE_SIZE;
-        }
-
-        intersection_y = player.y + (player.x - intersection_x)*tanTheta;
-
-        dy = (-dx)*tanTheta;
-
-        skip = !inMap(intersection_x, intersection_y);
-
-        while (!skip &&
-                map [(unsigned int)intersection_y/TILE_SIZE]
-                    [(unsigned int)intersection_x/TILE_SIZE] == 0)
-        {
-            intersection_x += dx;
-            intersection_y += dy;
-
-            skip = !inMap(intersection_x, intersection_y);
-        }
-
-        if (!skip)
-        {
-            float temp = fabs((player.x - intersection_x)/cos_theta);
-
-            if (temp < distance)
-            {
-                distance =  temp;
-                texture_xoffset = (unsigned)(intersection_y - (unsigned)intersection_y/TILE_SIZE) % getTextureWidth(box_tex);
-            }
-
-        }
-
-        if (distance == FLT_MAX)
-            continue;
-
-        // Correct fisheye distortion FIXME
-        float cos_beta = cos(RAD(player.angle_deg - ray_angle_deg));
-        distance = distance * cos_beta;
-
-        // Draw
-        float projDrawHeight = (TILE_SIZE / distance) * dist_to_proj_plane;
-        float proj_centre_y = rendererHeight/2.0;
-
-        int y1 = proj_centre_y - (projDrawHeight/2.0);
-        int y2 = proj_centre_y + (projDrawHeight/2.0);
-
-        y1 = y1 < 0 ? 0 : y1;
-        y1 = y1 > rendererHeight ? rendererHeight : y1;
-
-        y2 = y2 < 0 ? 0 : y2;
-        y2 = y2 > rendererHeight ? rendererHeight : y2;
-
-        drawTexturedVertLine(renderer, box_tex, texture_xoffset, y1, y2, c);    
-
-        // FLOOR CASTING
-        for (int r = y2; r < rendererHeight; r++)
-        {
-            if (r == proj_centre_y)
-                continue;
-
-            float diagonal_dist = 
-                (player.height * dist_to_proj_plane) / 
-                ((r - proj_centre_y) * cos_beta);
-
-            // Vertical component of floor is 0, duh
-            int floor_x = fabs(floor(diagonal_dist * sin_theta));
-            int floor_y = fabs(floor(diagonal_dist * cos_theta));
-
-            floor_x += player.x;
-            floor_y += player.y;
-
-            // TODO allow for multiple floor textures
-            int floor_grid_x = (floor_x/TILE_SIZE);
-            int floor_grid_y = (floor_y/TILE_SIZE);
-
-            if (floor_grid_x < 0 || floor_grid_x >= TILE_SIZE || 
-                floor_grid_y < 0 || floor_grid_y >= TILE_SIZE)
-                continue;
-
-            int tex_x = floor_x % getTextureWidth(floor_tex);
-            int tex_y = floor_y % getTextureHeight(floor_tex);
-
-            drawTextureSampledPixel(renderer, floor_tex, tex_x, tex_y, c, r);
-
-        }
-
-        // ROOF CASTING
-        for (int r = y1; r >= 0; r--)
-        {
-            if (r == proj_centre_y)
-                continue;
-
-            float diagonal_dist = 
-                (player.height * dist_to_proj_plane) / 
-                ((r - proj_centre_y) * cos_beta);
-
-            // Vertical component of floor is 0, duh
-            int roof_x = fabs(floor(diagonal_dist * sin_theta));
-            int roof_y = fabs(floor(diagonal_dist * cos_theta));
-
-            roof_x += player.x;
-            roof_y += player.y;
-
-            // TODO allow for multiple floor textures
-            int roof_grid_x = (roof_x/TILE_SIZE);
-            int roof_grid_y = (roof_y/TILE_SIZE);
-
-            if (roof_grid_x < 0 || roof_grid_x >= TILE_SIZE || 
-                roof_grid_y < 0 || roof_grid_y >= TILE_SIZE)
-                continue;
-
-            int tex_x = roof_x % getTextureWidth(floor_tex);
-            int tex_y = roof_y % getTextureHeight(floor_tex);
-
-            drawTextureSampledPixel(renderer, floor_tex, tex_x, tex_y, c, r);
-
-        }
-
-    }
+    raycast(renderer, game_state, camera_plane);
 
     updateRenderer(renderer, window);
 }
@@ -340,10 +94,16 @@ void gameLoop(void)
             stop = true;
             return;
         }
+
+        if (e.type == SDL_EVENT_MOUSE_MOTION)
+        {
+
+        }
     }
 
-    player.angle_deg = player.angle_deg + 0.1;
-    player.angle_deg = player.angle_deg > 360 ? player.angle_deg - 360 : player.angle_deg;
+
+    // Keyboard
+    const bool *key_states = SDL_GetKeyboardState(NULL);
 
     // Render
     draw();

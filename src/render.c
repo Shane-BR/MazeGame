@@ -4,14 +4,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-struct Renderer
-{
-    int width, height;
-    uint32_t *pixels;
-    SDL_Surface *target_surface;
-    SDL_Surface *src_surface;
-};
-
 static inline uint32_t *rendererPixelAt(Renderer *renderer, int x, int y)
 {
     return &(renderer->pixels[x + y*renderer->width]);
@@ -42,7 +34,7 @@ Renderer *createRenderer(int width, int height, const Window* window_target)
         return NULL;
     }
 
-    renderer->pixels = (uint32_t*)(renderer->src_surface->pixels);
+    renderer->pixels = (Color*)(renderer->src_surface->pixels);
 
     return renderer;
 
@@ -52,17 +44,6 @@ void destroyRenderer(Renderer *renderer)
 {
     SDL_DestroySurface(renderer->src_surface);
     free(renderer);
-}
-
-int getRendererWidth(Renderer *renderer)
-{
-    return renderer->width;
-}
-
-int getRendererHeight(Renderer *renderer)
-{
-
-    return renderer->height;
 }
 
 void clearRenderer(Renderer *renderer)
@@ -114,7 +95,7 @@ void drawTexturedVertLine(Renderer *renderer, Texture *texture, int texture_xoff
             continue;
 
         // Texture y-coord
-        int tex_max_y = getTextureHeight(texture) - 1;
+        int tex_max_y = texture->height - 1;
         int tex_y = (y-y1) * ((float)(tex_max_y)/(y2-y1));
 
         *rendererPixelAt(renderer, x, y) = getTexturePixel(texture, texture_xoffset, tex_y);
@@ -163,6 +144,12 @@ void updateRenderer(Renderer *renderer, Window *window)
     if (renderer == NULL || window == NULL)
         return;
 
-    SDL_BlitSurface(renderer->src_surface, 0, renderer->target_surface, 0);
+
+    if (!SDL_BlitSurface(renderer->src_surface, 0, renderer->target_surface, 0))
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
+            "updateRenderer: Error blitting surface: %s", SDL_GetError());
+    }
+
     updateWindow(window);
 }

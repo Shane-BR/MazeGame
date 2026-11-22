@@ -3,12 +3,6 @@
 #include <SDL3/SDL_log.h>
 #include <stdlib.h>
 
-struct Texture
-{
-    int width, height, channels;
-    Color *pixels;
-};
-
 Texture *createTexture(const char *filepath)
 {
     Texture *texture = malloc(sizeof(*texture)); // TODO Arena
@@ -36,17 +30,6 @@ void destroyTexture(Texture *texture)
 {
     stbi_image_free(texture->pixels);
     free(texture);
-}
-
-int getTextureWidth(const Texture *texture)
-{
-
-    return texture->width;
-}
-
-int getTextureHeight(const Texture *texture)
-{
-    return texture->height;
 }
 
 Color getTexturePixel(const Texture *texture, int x, int y)
