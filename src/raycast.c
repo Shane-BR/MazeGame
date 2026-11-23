@@ -2,11 +2,91 @@
 #include "texture.h"
 #include <math.h>
 
-#define RAD(x) ((x)*(PI/180.0))
+
+/*
+    TODO: Try this
+    Instead of floor or ceiling casting first and then raycasting for walls:
+
+    1. Run the wall raycaster, and write an array with information about each wall slice:
+        a. Each element should store (index is column):
+            1. Texture id       (16 bits)
+            2. Texure x offset  (16 bits)
+            3. Start Row        (16 bits)
+            4. End row          (16 bits)
+        b. 
+
+    2. Run floorcasting:
+        a. When writing pixel buffer,
+            if withen range specified for current column wall slice.
+                draw pixel sampled from given id for wall slice
+            else
+                draw floor/ceiling pixel
+
+    Don't need blitting with this setup, just write directly to window surface.
+*/
+
+
+static void floorcast(Renderer *renderer, const GameState *g_state, Vec2f camera_plane)
+{
+    Player *player = g_state->player;
+    Texture *floor_tex = getTexture(1);
+
+    for (int y = 0; y < renderer->height; y++)
+    {
+        Vec2f leftmost_ray = 
+        {
+            player->direction.x - camera_plane.x,  
+            player->direction.y - camera_plane.y
+        };
+
+        Vec2f rightmost_ray = 
+        {
+            player->direction.x + camera_plane.x,  
+            player->direction.y + camera_plane.y
+        };
+
+        float vert_pos = renderer->height / 2.0;
+        int low_point = y - vert_pos;
+
+        float floor_distance = vert_pos / low_point;
+
+        Vec2f floor_step = 
+        {
+            floor_distance * (rightmost_ray.x - leftmost_ray.x) / renderer->width,
+            floor_distance * (rightmost_ray.y - leftmost_ray.y) / renderer->width
+        };
+
+        Vec2f floor_pos = 
+        {
+            player->position.x + floor_distance * leftmost_ray.x,
+            player->position.y + floor_distance * leftmost_ray.y
+        };
+
+        // Write pixels
+        for (int x = 0; x < renderer->width; x++)
+        {
+            Vec2i grid_floor_pos = {(int)floor_pos.x, (int)floor_pos.y};
+
+            Vec2i tex_coords = 
+            {
+                (int)(floor_tex->width * (floor_pos.x - grid_floor_pos.x)) & (floor_tex->width - 1),
+                (int)(floor_tex->height * (floor_pos.y - grid_floor_pos.y)) & (floor_tex->height - 1)
+            };
+
+            floor_pos.x += floor_step.x;
+            floor_pos.y += floor_step.y;
+
+            drawTextureSampledPixel(renderer, 1, tex_coords.x, tex_coords.y, x, y);
+            drawTextureSampledPixel(renderer, 1, tex_coords.x, tex_coords.y, x, renderer->height - y - 1);
+        }
+    }
+}
 
 void raycast(Renderer *renderer, const GameState *g_state, Vec2f camera_plane)
 {
     Player *player = g_state->player;
+
+    floorcast(renderer, g_state, camera_plane);
 
     for (int col = 0; col < renderer->width; col++)
     {
