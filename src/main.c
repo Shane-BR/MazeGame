@@ -2,7 +2,6 @@
 
 #include "game.h"
 #include "raycast.h"
-#include "render.h"
 #include "stb_image.h"
 #include "texture.h"
 #include "window.h"
@@ -20,7 +19,6 @@
 #define TILE_SIZE 32
 
 Window *window;
-Renderer *renderer;
 bool stop;
 
 // TODO MOVE!
@@ -31,7 +29,7 @@ Texture *floor_tex;
 Vec2f camera_plane;
 
 void gameLoop(void);
-void draw(void);
+void renderLoop(void);
 
 int main(void)
 {
@@ -43,8 +41,7 @@ int main(void)
         return 1;
     }
 
-    window = createWindow(1920, 1080, "Maze Game");
-    renderer = createRenderer(window->width, window->height, window);
+    window = createWindow(1024, 768, "Maze Game");
     game_state = initGame(MAP_WIDTH, MAP_HEIGHT);
 
     camera_plane.x = game_state->player->direction.y;
@@ -65,20 +62,17 @@ int main(void)
 
     destroyTexture(box_tex);
     destroyTexture(floor_tex);
-    destroyRenderer(renderer);
     destroyWindow(window);
     SDL_Quit();
     return 0;
 }
 
-void draw(void)
+void renderLoop(void)
 {
 
-    clearRenderer(renderer);
+    run_raycaster(window, game_state, camera_plane);
 
-    raycast(renderer, game_state, camera_plane);
-
-    updateRenderer(renderer, window);
+    updateWindow(window);
 }
 
 void gameLoop(void)
@@ -146,7 +140,7 @@ void gameLoop(void)
     }
 
     // Render
-    draw();
+    renderLoop();
 
     static uint64_t last_ticks = 0;
     static int frames = 0;

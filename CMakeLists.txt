@@ -18,7 +18,6 @@ add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME}
 PRIVATE
     src/main.c
-    src/render.c
     src/window.c
     src/texture.c
     src/raycast.c

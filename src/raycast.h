@@ -2,8 +2,8 @@
 #define MG_RAYCAST_H
 
 #include "game.h"
-#include "render.h"
+#include "window.h"
 
-void raycast(Renderer *renderer, const GameState *g_state, Vec2f camera_plane);
+void run_raycaster(Window *window, const GameState *g_state, Vec2f camera_plane);
 
 #endif

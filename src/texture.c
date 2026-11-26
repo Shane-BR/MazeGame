@@ -54,16 +54,6 @@ void destroyTexture(Texture *texture)
 
 Color getTexturePixel(const Texture *texture, int x, int y)
 {
-    if (x < 0 || x >= texture->width || y < 0 || y >= texture->height)
-    {
-        SDL_LogError(
-                    SDL_LOG_CATEGORY_APPLICATION, 
-                    "getTexturePixel: Texture coordinate (%i, %i) is out of bounds for texture of size %ix%i", 
-                    x, y, texture->width, texture->height
-                    );
-        return 0x0;
-    }
-
     return texture->pixels[x + y*texture->width];
 }
 
