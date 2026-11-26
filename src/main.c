@@ -52,8 +52,10 @@ int main(void)
 
     stop = false;
 
-    box_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/bricksx64.png", 0);
-    floor_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/stein2.png", 1);
+    box_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/bricksx64.png", 
+        0, SDL_PIXELFORMAT_ARGB8888);
+    floor_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/stein2.png", 
+        1, SDL_PIXELFORMAT_ARGB8888);
 
     while (!stop)
     {
