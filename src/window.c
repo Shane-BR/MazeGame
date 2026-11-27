@@ -51,9 +51,9 @@ void resizeWindow(Window* window, int n_width, int n_height)
     // TODO
 }
 
-void putPixel(Window *window, Color pixel_color, int x, int y)
+void putPixel(Window *window, ARGB32 pixel_color, int x, int y)
 {
-    ((Color*)window->pixels)[x + y*window->width] = pixel_color;
+    ((ARGB32*)window->pixels)[x + y*window->width] = pixel_color;
 }
 
 void updateWindow(Window *window)

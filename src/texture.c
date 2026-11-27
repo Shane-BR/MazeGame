@@ -26,7 +26,7 @@ Texture *registerTexture(const char *filepath, int id, int format)
         return NULL;
     }
 
-    Color *data = (Color *)stbi_load(filepath, 
+    ARGB32 *data = (ARGB32 *)stbi_load(filepath, 
         &texture->width, &texture->height, &texture->channels, STBI_rgb_alpha);
 
     if (data == NULL)
@@ -64,7 +64,7 @@ void freeTexture(Texture *texture)
     free(texture);
 }
 
-Color getTexturePixel(const Texture *texture, int x, int y)
+ARGB32 getTexturePixel(const Texture *texture, int x, int y)
 {
     return texture->pixels[x + y*texture->width];
 }

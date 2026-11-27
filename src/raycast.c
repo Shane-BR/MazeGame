@@ -101,7 +101,7 @@ void run_raycaster(Window *window, const GameState *g_state, const Vec2f cam_pla
         {
             // Draw pixels
             // If column has wall slice AND within range of wall slice
-            Color color = 0x0;
+            ARGB32 color = 0x0;
             if (!is_empty_wall_slice(&slices[x]) && in_slice_row_range(&slices[x], y))
             {
                 int tex_y = (y - slices[x].start_row) * slices[x].tex_y_step;
