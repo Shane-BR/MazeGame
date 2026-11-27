@@ -23,6 +23,7 @@ static const char tmp_level[] =
 };
 
 static char *initMap(int map_w, int map_h);
+static Player *initPlayer(void);
 
 GameState *initGame(int map_w, int map_h)
 {
@@ -37,28 +38,19 @@ GameState *initGame(int map_w, int map_h)
     }
 
     game_state->map = initMap(map_w, map_h);
-
-    game_state->player = malloc(sizeof(*game_state->player)); // TODO Arena
-    if (game_state->player == NULL)
-    {
-        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
-            "initGame: Failed to allocate memory for player.");
-
-        return NULL;
-    }
+    game_state->player = initPlayer();
 
     game_state->map_width = map_w;
     game_state->map_height = map_h;
 
-    game_state->player->height = 32;
-    game_state->player->direction.x = 1;
-    game_state->player->direction.y = 0;
-    game_state->player->fov_deg = 60.0f;
-    game_state->player->position.x = 2;
-    game_state->player->position.y = 2;
-    game_state->player->movement_speed = 0.01f;
-
     return game_state;
+}
+
+void freeGameState(GameState *game_state)
+{
+    free(game_state->map);
+    free(game_state->player);
+    free(game_state);
 }
 
 char getMapTile(const GameState *game_state, Vec2i at)
@@ -87,4 +79,27 @@ static char *initMap(int map_w, int map_h)
     memcpy(map, tmp_level, sizeof(tmp_level));
 
     return map;
+}
+
+// TODO some of these should be configurable
+static Player *initPlayer(void)
+{
+    Player *player = malloc(sizeof(*player)); // TODO Arena
+    if (player == NULL)
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, 
+            "initGame: Failed to allocate memory for player.");
+
+        return NULL;
+    }
+
+    player->height = 32;
+    player->direction.x = 1;
+    player->direction.y = 0;
+    player->fov_deg = 60.0f;
+    player->position.x = 2;
+    player->position.y = 2;
+    player->movement_speed = 0.01f;
+
+    return player;
 }

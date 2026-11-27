@@ -10,8 +10,8 @@ typedef struct
     Color *pixels;
 } Texture;
 
-Texture *createTexture(const char *filepath, int id, int format);
-void destroyTexture(Texture *texture);
+Texture *registerTexture(const char *filepath, int id, int format);
+void freeTexture(Texture *texture);
 Color getTexturePixel(const Texture *texture, int x, int y);
 Texture *getTexture(int id);
 

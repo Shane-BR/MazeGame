@@ -14,6 +14,7 @@ typedef struct
 } GameState;
 
 GameState *initGame(int map_w, int map_h);
+void freeGameState(GameState *game_state);
 char getMapTile(const GameState *game_state, Vec2i at);
 
 #endif

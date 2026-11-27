@@ -14,7 +14,7 @@ typedef struct
 } Window;
 
 Window *createWindow(int width, int height, const char* title);
-void destroyWindow(Window* window);
+void freeWindow(Window* window);
 void resizeWindow(Window* window, int n_width, int n_height);
 void updateWindow(Window *window);
 void putPixel(Window *window, Color pixel_color, int x, int y);

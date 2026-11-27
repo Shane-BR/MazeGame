@@ -35,7 +35,6 @@ typedef struct
 {
     uint16_t tex_id;
     int16_t tex_x_offset;
-    int16_t a;
     int16_t start_row;
     int16_t end_row;
     float tex_y_step;
@@ -268,7 +267,7 @@ static void init_tables(Window *window, const GameState *g_state, const Vec2f ca
 {
     if (slices == NULL)
     {
-        slices = malloc(sizeof(*slices)*window->width); // TODO Arena?
+        slices = malloc(sizeof(*slices)* (size_t)window->width); // TODO Arena?
 
         if (slices == NULL)
         {
@@ -297,7 +296,7 @@ static void init_tables(Window *window, const GameState *g_state, const Vec2f ca
         // TODO change when resizing
         for (int y = 0; y < window->height; y++)
         {
-            float vert_pos = window->height / 2.0;
+            float vert_pos = window->height / 2.0f;
             int low_point = y - vert_pos;
             float floor_distance = vert_pos / low_point;
 

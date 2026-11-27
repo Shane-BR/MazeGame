@@ -15,9 +15,7 @@ typedef struct
 
 TextureTable table;
 
-static void registerTexture(Texture *texture, int id);
-
-Texture *createTexture(const char *filepath, int id, int format)
+Texture *registerTexture(const char *filepath, int id, int format)
 {
     Texture *texture = malloc(sizeof(*texture)); // TODO Arena
 
@@ -54,12 +52,13 @@ Texture *createTexture(const char *filepath, int id, int format)
 
     stbi_image_free(data);
 
-    registerTexture(texture, id);
+    table.textures[id] = texture;
+    table.count++;
 
     return texture;
 }
 
-void destroyTexture(Texture *texture)
+void freeTexture(Texture *texture)
 {
     free(texture->pixels);
     free(texture);
@@ -73,10 +72,4 @@ Color getTexturePixel(const Texture *texture, int x, int y)
 Texture *getTexture(int id)
 {
     return table.textures[id];
-}
-
-static void registerTexture(Texture *texture, int id)
-{
-    table.textures[id] = texture;
-    table.count++;
 }

@@ -41,7 +41,7 @@ int main(void)
         return 1;
     }
 
-    window = createWindow(1024, 768, "Maze Game");
+    window = createWindow(1920, 1080, "Maze Game");
     game_state = initGame(MAP_WIDTH, MAP_HEIGHT);
 
     camera_plane.x = game_state->player->direction.y;
@@ -52,9 +52,9 @@ int main(void)
 
     stop = false;
 
-    box_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/bricksx64.png", 
+    box_tex = registerTexture("/home/shane/Documents/repos/MazeGame/res/bricksx64.png", 
         0, SDL_PIXELFORMAT_ARGB8888);
-    floor_tex = createTexture("/home/shane/Documents/repos/MazeGame/res/stein2.png", 
+    floor_tex = registerTexture("/home/shane/Documents/repos/MazeGame/res/stein2.png", 
         1, SDL_PIXELFORMAT_ARGB8888);
 
     while (!stop)
@@ -62,9 +62,10 @@ int main(void)
         gameLoop();
     }
 
-    destroyTexture(box_tex);
-    destroyTexture(floor_tex);
-    destroyWindow(window);
+    freeTexture(box_tex);
+    freeTexture(floor_tex);
+    freeWindow(window);
+    freeGameState(game_state);
     SDL_Quit();
     return 0;
 }

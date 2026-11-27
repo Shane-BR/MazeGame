@@ -40,7 +40,7 @@ Window *createWindow(int width, int height, const char* title)
     return window;
 }
 
-void destroyWindow(Window* window)
+void freeWindow(Window* window)
 {
     SDL_DestroyWindow(window->sdl_window);
     free(window); // TODO Arena
